@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Parallel Parking — Vertical Right Bay (Slim, Adjusted)</title>
+<title>Parallel Parking — Vertical Right Bay (Slim + Lane Lines)</title>
 <style>
   :root { --bg:#0c1220; --lot:#1e2a44; --text:#eef2ff; --accent:#e9e370; --ok:#5df2a2; --bad:#ff5d7a; }
   html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
@@ -68,23 +68,23 @@ function bindHold(el, key){
 btn('reset').addEventListener('click', resetGame);
 window.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='r') resetGame(); });
 
-// ====== World Geometry (right-side vertical bay, slimmer & fitted) ======
+// ====== World Geometry (right-side vertical bay, slimmer & lane lines) ======
 const W = canvas.width, H = canvas.height;
 const curb = {x:40, y:40, w:W-80, h:H-80, r:18};
 
-// Right bay frame (slim)
+// Right bay frame — thinner overall width
 const bay = {
-  x: curb.x + curb.w - 220,
+  x: curb.x + curb.w - 200, // slightly farther left than before to thin the bay area
   y: curb.y + 20,
-  w: 160,
+  w: 140,                   // narrower bay
   h: curb.h - 40,
-  bar: 18
+  bar: 18                   // rail thickness
 };
 
 // Inner width between rails
 const innerW = bay.w - 2*bay.bar;
 
-// Middle slot fully inside rails
+// Middle slot fully inside rails (narrower)
 const slot = {
   x: bay.x + bay.bar,
   y: bay.y + bay.bar + 160,
@@ -112,14 +112,14 @@ const parkedTopLen = Math.max(80, topSectionH - 2*endPad);
 const parkedBotLen = Math.max(80, bottomSectionH - 2*endPad);
 
 const parked = [
-  { // TOP car — shifted up to maximize entry clearance near divider
+  { // TOP car — up high for entry clearance
     x: slot.x + sidePad,
     y: topStart + endPad,
     w: parkedTopLen,
     h: parkedWidth,
     angle: Math.PI/2
   },
-  { // BOTTOM car — centered within bottom section with same side gaps
+  { // BOTTOM car — low, near bottom rail
     x: slot.x + sidePad,
     y: bottomStart + endPad,
     w: parkedBotLen,
@@ -131,8 +131,8 @@ const parked = [
 // ====== Player Car (slim) ======
 const car = {
   length: 120, width: 50, wheelbase: 82,
-  x: bay.x - 120, // to the left of the bottom parked car
-  y: parked[1].y + parked[1].h/2, // aligned with its middle
+  x: bay.x - 80, // a bit closer to the bay per your last tweak
+  y: parked[1].y + parked[1].h/2,
   angle: -Math.PI/2, // facing UP
   speed: 0, steer: 0,
   maxSteer: 32*Math.PI/180, steerRate: 180*Math.PI/180,
@@ -141,7 +141,7 @@ const car = {
 };
 
 function resetGame(){
-  car.x = bay.x - 120;
+  car.x = bay.x - 80;
   car.y = parked[1].y + parked[1].h/2;
   car.angle = -Math.PI/2; // up
   car.speed = 0; car.steer = 0; gameOver=false; parkedClean=false;
@@ -239,9 +239,8 @@ function draw(){
   drawRoundedRect(curb.x,curb.y,curb.w,curb.h,18,'#15203a');
   ctx.strokeStyle='#0b1326'; ctx.lineWidth=3; ctx.strokeRect(curb.x+1.5,curb.y+1.5,curb.w-3,curb.h-3);
 
-  // driving lane dashed line (vertical)
-  ctx.setLineDash([10,14]); ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=3; ctx.beginPath();
-  ctx.moveTo(curb.x + curb.w*0.35, curb.y+20); ctx.lineTo(curb.x + curb.w*0.35, curb.y+curb.h-20); ctx.stroke(); ctx.setLineDash([]);
+  // driving lane markers and no-cross yellow line
+  drawLaneMarkers();
 
   // Yellow bay frame and dividers
   drawBay();
@@ -256,6 +255,31 @@ function draw(){
 
   // Player car (slim)
   drawCar(car);
+}
+
+function drawLaneMarkers(){
+  const left = curb.x + 16;
+  const right = bay.x - 12; // leave a gutter near the bay
+  const top = curb.y + 14;
+  const bottom = curb.y + curb.h - 14;
+  const w = right - left;
+
+  // Grey dashed lane markers
+  const greyLines = 4; // how many light-grey dashed lines
+  ctx.setLineDash([8, 14]);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(255,255,255,.18)';
+  for(let i=1;i<=greyLines;i++){
+    const x = left + (i/(greyLines+1)) * w;
+    ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke();
+  }
+
+  // Yellow do-not-cross line (place near middle of driving area)
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#ffd94a';
+  const yellowX = left + 0.48 * w; // approx center-left as in your mockup
+  ctx.strokeStyle = accent; ctx.lineWidth = 4; ctx.setLineDash([10, 14]);
+  ctx.beginPath(); ctx.moveTo(yellowX, top); ctx.lineTo(yellowX, bottom); ctx.stroke();
+  ctx.setLineDash([]);
 }
 
 function drawBay(){
