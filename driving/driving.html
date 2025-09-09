@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Parallel Parking — Vertical Right Bay (Slim)</title>
+<title>Parallel Parking — Vertical Right Bay (Slim, Adjusted)</title>
 <style>
   :root { --bg:#0c1220; --lot:#1e2a44; --text:#eef2ff; --accent:#e9e370; --ok:#5df2a2; --bad:#ff5d7a; }
   html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
@@ -68,49 +68,67 @@ function bindHold(el, key){
 btn('reset').addEventListener('click', resetGame);
 window.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='r') resetGame(); });
 
-// ====== World Geometry (right-side vertical bay, slimmer) ======
+// ====== World Geometry (right-side vertical bay, slimmer & fitted) ======
 const W = canvas.width, H = canvas.height;
 const curb = {x:40, y:40, w:W-80, h:H-80, r:18};
 
-// Right bay frame (slimmer than before)
+// Right bay frame (slim)
 const bay = {
-  x: curb.x + curb.w - 220, // closer to edge
+  x: curb.x + curb.w - 220,
   y: curb.y + 20,
-  w: 160,                   // narrower bay
+  w: 160,
   h: curb.h - 40,
-  bar: 18                   // frame thickness
+  bar: 18
 };
 
-// Middle slot fully inside the bay rails
+// Inner width between rails
+const innerW = bay.w - 2*bay.bar;
+
+// Middle slot fully inside rails
 const slot = {
   x: bay.x + bay.bar,
   y: bay.y + bay.bar + 160,
-  w: bay.w - 2*bay.bar,     // inner width visible between rails
+  w: innerW,
   h: 250,
   angle: Math.PI/2
 };
 
-// Parked cars (top & bottom) — SLIM width (local h), long length (local w)
-const parkedLength = 240;                 // local w before rotation (car length)
-const parkedWidth  = Math.max(70, slot.w - 14); // local h before rotation (car width) — slim
+// Margins so grey cars sit fully behind yellow rails
+const sidePad = 12;   // left/right gap inside rails
+const endPad  = 12;   // gap to dividers/top/bottom
+
+// Sections above and below slot (inside rails)
+const topStart    = bay.y + bay.bar;
+const topEnd      = slot.y - bay.bar;
+const bottomStart = slot.y + slot.h + bay.bar;
+const bottomEnd   = bay.y + bay.h - bay.bar;
+
+const topSectionH    = Math.max(0, topEnd - topStart);
+const bottomSectionH = Math.max(0, bottomEnd - bottomStart);
+
+// Parked cars (rotate 90°). h is the cross-car width; w is the length along bay
+const parkedWidth = Math.max(40, innerW - 2*sidePad); // SLIM and within rails
+const parkedTopLen = Math.max(80, topSectionH - 2*endPad);
+const parkedBotLen = Math.max(80, bottomSectionH - 2*endPad);
+
 const parked = [
-  { // top car
-    x: slot.x + (slot.w - parkedWidth)/2 - (parkedLength - slot.w)/2, // centered visually inside rails
-    y: bay.y + bay.bar + 10,
-    w: parkedLength,
+  { // TOP car — shifted up to maximize entry clearance near divider
+    x: slot.x + sidePad,
+    y: topStart + endPad,
+    w: parkedTopLen,
     h: parkedWidth,
     angle: Math.PI/2
   },
-  { // bottom car
-    x: slot.x + (slot.w - parkedWidth)/2 - (parkedLength - slot.w)/2,
-    y: slot.y + slot.h + bay.bar + 10,
-    w: parkedLength,
+  { // BOTTOM car — centered within bottom section with same side gaps
+    x: slot.x + sidePad,
+    y: bottomStart + endPad,
+    w: parkedBotLen,
     h: parkedWidth,
     angle: Math.PI/2
   }
 ];
 
-// ====== Player Car (slimmer to match) ======
+// ====== Player Car (slim) ======
 const car = {
   length: 120, width: 50, wheelbase: 82,
   x: bay.x - 120, // to the left of the bottom parked car
